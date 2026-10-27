@@ -1,0 +1,550 @@
+<title>ITSopri Final Reviewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Public+Sans:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: one narrow column, a stacked case-file feel. Home -> quiz -> result in the same frame. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #14202e;
+  --muted: #566577;
+  --line: #d3dae3;
+  --accent: #284a9c;
+  --accent-ink: #ffffff;
+  --good: #17744a;
+  --good-bg: #e3f4ec;
+  --bad: #b3261e;
+  --bad-bg: #fbe9e7;
+  --soft: #e3e9f2;
+  --display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151e; --surface: #16202c; --ink: #e8edf3; --muted: #9aa8b8; --line: #2a3849;
+    --accent: #8fb0ff; --accent-ink: #0e151e; --good: #5fd3a0; --good-bg: #12352a;
+    --bad: #ff9a90; --bad-bg: #3b1a17; --soft: #1e2b3b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151e; --surface: #16202c; --ink: #e8edf3; --muted: #9aa8b8; --line: #2a3849;
+  --accent: #8fb0ff; --accent-ink: #0e151e; --good: #5fd3a0; --good-bg: #12352a;
+  --bad: #ff9a90; --bad-bg: #3b1a17; --soft: #1e2b3b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.25rem; }
+.eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.lede { color: var(--muted); margin: 8px 0 0; max-width: 56ch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--soft); border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--display); font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .78rem; color: var(--muted); }
+.bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s ease; }
+.topics { display: flex; flex-direction: column; gap: 8px; }
+.topic, .len, .opt, .btn {
+  font: inherit; color: inherit; cursor: pointer; text-align: left;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 6px; padding: 12px 14px; min-height: 48px;
+}
+.topic { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.topic small { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.topic[aria-pressed="true"], .len[aria-pressed="true"] { border-color: var(--accent); background: var(--soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.lens { display: flex; gap: 8px; flex-wrap: wrap; }
+.len { text-align: center; min-width: 64px; flex: 1 1 64px; }
+.btn { text-align: center; font-weight: 700; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn:disabled, .topic:disabled { opacity: .5; cursor: not-allowed; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.btns .btn { flex: 1 1 140px; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.note { color: var(--muted); font-size: .88rem; margin: 0; }
+.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .9rem; }
+.hist li { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.hist span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* quiz */
+.qhead { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+.tag { text-transform: uppercase; letter-spacing: .08em; }
+.question { font-family: var(--display); font-size: 1.25rem; line-height: 1.35; font-weight: 600; margin: 0; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt { display: flex; gap: 12px; align-items: flex-start; width: 100%; }
+.opt .k { font-family: var(--mono); color: var(--muted); flex: none; width: 1.2em; }
+.opt .t { min-width: 0; overflow-wrap: anywhere; }
+.opt.good { border-color: var(--good); background: var(--good-bg); }
+.opt.bad { border-color: var(--bad); background: var(--bad-bg); }
+.opt .flag { margin-left: auto; font-size: .75rem; font-weight: 700; white-space: nowrap; padding-left: 8px; }
+.opt.good .flag { color: var(--good); }
+.opt.bad .flag { color: var(--bad); }
+/* interaction polish */
+.topic, .len, .opt, .btn { transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .12s ease; -webkit-tap-highlight-color: transparent; }
+.opt .k { transition: background-color .15s ease, color .15s ease, border-color .15s ease; border: 1.5px solid var(--line); border-radius: 4px; text-align: center; width: 1.7em; height: 1.7em; line-height: 1.5em; font-size: .85rem; }
+.opt:disabled { cursor: default; }
+.opt:disabled:not(.good):not(.bad) { opacity: .55; }
+@media (hover: hover) {
+  .topic:not(:disabled):hover, .len:hover { border-color: var(--accent); background: var(--soft); }
+  .btn:not(:disabled):hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,.12); transform: translateY(-1px); }
+  .btn.primary:not(:disabled):hover { filter: brightness(1.1); }
+  .opt:not(:disabled):hover { border-color: var(--accent); background: var(--soft); box-shadow: 0 2px 10px rgba(0,0,0,.10); transform: translateX(3px); }
+  .opt:not(:disabled):hover .k { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+}
+.topic:not(:disabled):active, .len:active, .btn:not(:disabled):active, .opt:not(:disabled):active { transform: scale(.985); }
+.topic:focus-visible, .len:focus-visible, .opt:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .topic, .len, .opt, .btn, .opt .k, .bar > i { transition: none; } .opt:hover, .btn:hover, .topic:active, .len:active, .btn:active, .opt:active { transform: none !important; } }
+.explain { background: var(--soft); border-radius: 6px; padding: 12px 14px; font-size: .95rem; }
+.explain b { display: block; margin-bottom: 4px; }
+.explain.good b { color: var(--good); }
+.explain.bad b { color: var(--bad); }
+/* result */
+.score { font-family: var(--display); font-size: 3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.miss { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.miss p { margin: 0; }
+.miss .a { color: var(--good); font-weight: 500; }
+.miss .e { color: var(--muted); font-size: .9rem; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+@media (max-width: 420px) { h1 { font-size: 1.6rem; } .score { font-size: 2.5rem; } }
+</style>
+
+<main class="wrap" id="app"></main>
+
+<script>
+const QUESTIONS = [["cyber","Which is the best definition of cybercrime?","Any criminal act where a computer or network is the tool, the target, or the means of committing another crime","Any crime committed by a person who works in IT, whether or not a computer was involved at all","Only crimes in which computer hardware is physically stolen, damaged or destroyed by the offender","Any online activity that breaks a website's terms of service or a software license agreement","Cybercrime covers unlawful acts where information technology is a tool, a target, or both."],
+["cyber","Offenses that exist only because computers exist (hacking, malware, DoS attacks) are called...","Cyber-dependent crimes","Cyber-enabled crimes","Computer-assisted crimes","Cyber-incidental crimes","Cyber-enabled crimes (fraud, harassment, defamation) are traditional offenses that technology makes faster, cheaper and more scalable."],
+["cyber","Which is a cyber-enabled (not cyber-dependent) crime?","Online fraud, a traditional offense made easier by technology","A denial-of-service attack that takes a server offline","Distributing malware that infects other people's computers","Hacking into a computer system without permission","Fraud exists offline too. Hacking, malware and DoS only exist because of computers."],
+["cyber","Why could the creator of the 2000 'ILOVEYOU' virus not be prosecuted in the Philippines?","No Philippine law clearly criminalized his act at that time","The Philippines had no jurisdiction because the virus spread abroad","The virus was ruled to have caused no measurable damage","He was a minor and therefore exempt from criminal liability","This loophole is a big reason RA 10175 was passed in 2012."],
+["cyber","RA 10175 is officially known as the...","Cybercrime Prevention Act of 2012","Anti-Cybercrime and Data Protection Act of 2012","Cybercrime Prevention Act of 2009","Electronic Commerce and Cyber Security Act of 2012","RA 10175 = Cybercrime Prevention Act of 2012."],
+["cyber","According to the module, RA 10175 can reach an offender who is abroad when...","A Filipino is the victim, or a computer system in the Philippines was used","The offender is a Filipino citizen, wherever the victim is located","The offender later enters Philippine territory voluntarily","The offender's internet provider is based in the Philippines","The law's scope extends beyond physical borders in these situations."],
+["cyber","In RA 10175, 'without right' (Sec. 3(h)) means...","Acting without or in excess of authority, or without a legal defense or justification","Acting without paying the required license or subscription fees","Acting without the knowledge of the system owner, even if otherwise authorized","Acting with the intent to cause financial loss to another person","Almost every offense in the law hinges on acting 'without right'."],
+["cyber","Which is NOT one of the six Section 4(a) offenses against the confidentiality, integrity and availability of computer data and systems?","Illegal cybersex","Misuse of devices","Illegal interception","Cyber-squatting","Cybersex is content-related (Sec. 4(c)). The six are: illegal access, illegal interception, data interference, system interference, misuse of devices, cyber-squatting."],
+["cyber","A denial-of-service attack mainly threatens which part of the CIA triad?","Availability","Confidentiality","Integrity","Non-repudiation","System interference attacks availability; illegal access/interception attack confidentiality; data interference attacks integrity."],
+["cyber","What makes up the offense of Illegal Access?","Intentional access to a computer system, in whole or in part, by a person without right","Intentional copying of confidential data from a system by a person without right","Reckless access to a computer system that results in actual damage to its data","Access to a computer system by any person who was already warned not to enter","No damage and no successful data theft is required."],
+["cyber","Maria, a junior staff, uses an unattended, still-logged-in SRIS terminal to print her friend's grades. Is she guilty of illegal access?","Yes, she has no right to the system and intentionally used it","No, the authorized staff left the session open, so access was implied","No, she only printed records and did not alter any data","No, she is a registry employee and so has general access","No right of access + intentional access = illegal access."],
+["cyber","Maria instead tries to guess an SRIS username and password but fails. According to the module...","She can still be guilty, since the law does not require the access to succeed","She is not guilty, since the offense requires actual entry into the system and its files","She is guilty only if she made repeated attempts and was warned by the administrator","She is guilty only of a lesser offense of attempted access, with a reduced penalty","The law only requires intentional access by a person without right."],
+["cyber","The Chief Registrar (an authorized user) changes a student's grade from 83 to 90. Why may she still commit illegal access?","She acted in excess of her authority, which is 'without right'","Authorized users are never liable for what they do inside the system","She made the change outside of regular office hours","She used a personal computer rather than an office computer","'Without right' includes acting in excess of authority. Access includes storing data into the system."],
+["cyber","Using a computer or its data for unapproved or possibly illegal activities is called...","Unauthorized use","Unauthorized access","Illegal interception","Computer-related forgery","Unauthorized access = using a computer or network without permission. Unauthorized use = misusing the computer or its data."],
+["cyber","In Disini v. Secretary of Justice, what did the Court say about ethical hackers with prior permission?","They are insulated, since access with permission is not 'without right'","They are liable unless they get a court order before each test","They are liable for illegal access but exempt from interception","They are exempt only if they publish their findings publicly","Prior permission from the system owner removes the 'without right' element."],
+["cyber","A former student assistant finds his old credentials still work and logs in to view classmates' records, changing nothing. This is most likely...","Illegal access, because his authority ended with his employment","Data interference, because he opened and viewed student records","No offense, because nothing was altered, deleted or copied","Misuse of devices, because he used an old credential","Viewing without right is enough. His authorization ended when his employment did."],
+["cyber","Which is NOT an element of Illegal Interception?","The data must be altered or deleted","The act must be intentional","It must be done by technical means","The transmission must be non-public","Interception is about capturing non-public transmissions, not changing data."],
+["cyber","Why must the transmission be 'non-public' for illegal interception?","The law protects confidentiality, and public data has none to protect","Public data is always encrypted in transit, so it cannot be captured by anyone else","Only data held by government agencies and banks falls under the interception offense","Capturing public data is a separate offense punished by the Data Privacy Act instead","If data is transmitted for public access, there is no confidentiality to protect."],
+["cyber","Leo records classmates' login data with packet-capture software as it travels the school network, without logging in himself. Which offense in the confidentiality/integrity/availability group is most directly involved?","Illegal interception","Illegal access","Data interference","System interference","Capturing non-public transmissions by technical means = illegal interception."],
+["cyber","Rina, angry after a disciplinary notice, deliberately deletes hundreds of customer records with her still-active account. Which offense?","Data interference","System interference","Illegal interception","Misuse of devices","Data interference = intentional or reckless alteration, damaging, deletion or deterioration of data without right."],
+["cyber","What is the main difference between data interference and system interference?","Data interference is aimed at the data; system interference at how the system functions","Data interference needs a virus, while system interference needs a human","System interference covers only physical damage to computer hardware","Data interference is punished by prison, system interference by fine only","System interference can involve altering both data and the program."],
+["cyber","Boni, the MIS Director, directly edits his mother's SSS record to show her loan as paid. Offense?","Data interference","System interference","Misuse of devices","Illegal interception","He altered only data. If he had rigged the program to wipe her debt on a set date, that would be system interference."],
+["cyber","Boni instead alters the program's source code so his mother's debts vanish on a certain date. Offense?","System interference","Data interference","Cyber-squatting","Illegal interception","Altering the program affects how the system functions."],
+["cyber","Sean, a programmer, alters the SSS table that his ARIS program reads, changing how ARIS works. He is guilty of...","System interference, even though only data was altered","Data interference only, because only a table was altered","No offense, because Sean is the program's own developer","Illegal interception, because the program reads the table","Altering data can interfere with the functioning of the system."],
+["cyber","A person commits system interference by altering only the program (no data altered). Is he also guilty of data interference?","No, because no data was altered","Yes, because altering a program is also altering data","Yes, if the program is later run on live data","Only if the system belongs to a government agency","Data interference requires unauthorized alteration of data."],
+["cyber","A virus alters stored data but does not affect how the system or network functions. The person is liable for...","Data interference","System interference","Both data and system interference","Illegal interception","If the virus also hinders the system's functioning, system interference can apply too."],
+["cyber","An angry student floods the university enrollment server with automated requests, and legitimate students cannot log in for hours. Which offense?","System interference","Illegal interception","Data interference","Illegal access","Hindering the functioning of a system by inputting or transmitting data = system interference."],
+["cyber","Cyber-squatting is...","Acquiring a domain name in bad faith to profit, mislead, harm reputation or block others","Registering any domain name that another company already registered abroad","Acquiring a domain name in good faith and later reselling it for a profit","Hosting a website that copies another site's design and content","It requires bad faith and a name identical or similar to a registered trademark or another person's name."],
+["cyber","In the Jollibee example, bad faith can be shown if the domain holder...","Offers to sell the domain to the owner at a much higher price","Pays a monthly hosting fee of P150 for the domain","Registers the domain through a Philippine-based registrar","Builds a website layout different from the owner's","Selling at a much higher price points to bad faith."],
+["cyber","Registering 'example-university.com' to pose as the official admissions site and collect fees mainly involves which offense in the confidentiality/integrity/availability group?","Cyber-squatting","Illegal interception","Data interference","System interference","The domain is confusingly similar to another's name and registered in bad faith."],
+["cyber","What must be proven for Misuse of Devices?","Without right, a tool or credential meant for cybercrime, and intent to commit an offense","Without right, a tool or credential meant for cybercrime, and proof that damage resulted","Possession of any hacking tool, regardless of the owner's purpose","A prior conviction for another cybercrime offense, plus possession of a tool","Elements: without authorization, nature of the device/data, and specific intent."],
+["cyber","Daniel creates an exploit program, tells buyers it can gain unauthorized access, and sells copies. Which offense?","Misuse of devices","Illegal access","Cyber-squatting","Computer-related fraud","Producing and selling tools designed for cybercrime is misuse of devices."],
+["cyber","Computer-related forgery is...","Unauthorized input, alteration or deletion of data that makes it inauthentic yet meant to pass as genuine","Unauthorized input, alteration or deletion of data meant to cause economic damage through fraud","Registering a name or domain identical to a protected trademark","Capturing non-public data transmissions by technical means","It includes knowingly using forged data (passive forgery)."],
+["cyber","A registry staff member illegally alters grades so a student qualifies as cum laude (active forgery). The Chief Registrar, knowing this, still confers the honor. Her act is...","Passive computer-related forgery","Active computer-related forgery","Computer-related fraud","Data interference","Passive forgery = knowingly acting on forged data to perpetuate a fraudulent or dishonest design."],
+["cyber","A person guilty of computer-related forgery is also guilty of...","Data interference","System interference","Illegal interception","Misuse of devices","The unauthorized alteration also constitutes data interference."],
+["cyber","How does computer-related fraud differ from computer-related forgery?","Fraud also covers interference with the system and aims at damage with economic benefit","Fraud applies only to stored data and requires a printed written document to exist","Forgery requires malware to be installed on the victim's system, while fraud does not","Fraud is punished by a fine alone, while forgery is punished by imprisonment only","Fraud: unauthorized input, alteration or deletion of data or program, or interference with a system, causing damage with fraudulent intent."],
+["cyber","Allan changes source code so the coop system will hang on a certain date, but it is discovered before that date. His penalty is...","One degree lower, because no damage has been caused yet","One degree higher, because the plan was premeditated","The same, because intent alone completes the offense","None, because the code was discovered in time","If no damage has been caused yet, the penalty is one degree lower."],
+["cyber","Creating a fake Facebook profile with someone's name and photo, then asking their friends for money, is...","Computer-related identity theft","Computer-related forgery","Cyber-squatting","Misuse of devices","Unauthorized acquisition and use of another's identifying information."],
+["cyber","A student builds a fake login page to harvest classmates' passwords. Which offense best describes collecting the credentials?","Computer-related identity theft","Illegal interception","System interference","Cyber-squatting","Unauthorized acquisition of identifying information."],
+["cyber","Which group lists the content-related offenses under RA 10175?","Cybersex, child pornography, unsolicited commercial communications, online libel","Cybersex, child pornography, cyber-squatting, unsolicited commercial communications","Cybersex, computer-related identity theft, spam, online libel, child pornography","Child pornography, computer-related forgery, spam, illegal access, online libel","Content-related offenses concern the content that is transmitted."],
+["cyber","Which element is unique to illegal cybersex?","It is done for favor or consideration","It must involve at least one minor","It must be broadcast to the public","It must be done using malware","Lascivious exhibition with the aid of a computer system, for favor or consideration (the target is cyber prostitution/pornography as a business)."],
+["cyber","The Supreme Court upheld the cybersex provision by construing it to apply only to...","Persons engaged in the business of maintaining, controlling or operating it","Persons who merely view or download such content for their own private use","Only persons who knowingly transmit such content to minors through a computer","Only persons paid above a minimum monthly amount for the content they provide","This is the Court's construction of Sec. 4(c)(1)."],
+["cyber","Penalty for illegal cybersex under RA 10175:","Prision mayor or a fine of P200,000 to P1,000,000, or both","Prision correccional or a fine of P50,000 to P500,000, or both","Reclusion temporal or a fine of P500,000 to P2,000,000","Arresto mayor and a fine of up to P100,000","Prision mayor = 6 years and 1 day to 12 years."],
+["cyber","If child pornography is committed through a computer system, the penalty compared to RA 9775 is...","One degree higher","One degree lower","Two degrees higher","The same","RA 10175 Sec. 4(c)(2) raises the penalty by one degree."],
+["cyber","Syndicated child pornography under RA 9775 is already punishable by...","Reclusion perpetua","Reclusion temporal","Prision mayor","Life imprisonment without parole","Reclusion perpetua is about 30 years. This was true even without the cybercrime law."],
+["cyber","Which law repealed RA 9775 (Anti-Child Pornography Act of 2009), per your case-scenario handout?","RA 11930","RA 10175","RA 9995","RA 10364","RA 11930 is the Anti-OSAEC and Anti-CSAEM Act. The handout says to address both the historical and the current framework."],
+["cyber","Under RA 11930, child sexual abuse or exploitation material can involve which subjects?","A real child, an adult portrayed as a child, or a digital or virtual child","Only real children, including those shown in edited photographs","Only real children under 15 years old at the time of recording","Only material that is sold or distributed for payment","AI-generated, CGI and drawn children can count as digital or virtual children."],
+["cyber","Grooming (under RA 11930) is...","Building trust with a child online to prepare for later sexual abuse","Teaching a child online safety rules and privacy settings to prevent later abuse","Selling images of a child through an online marketplace for payment or favor","Pressuring a child to livestream abuse by threatening to expose private photos","Grooming is a recognized part of online sexual abuse or exploitation of children."],
+["cyber","Under RA 11930, internet providers, social media platforms and banks must...","Block and report illegal content and related money transfers","Delete such content but keep the matter from authorities","Wait for a court order before removing any flagged content","Notify the account owner before taking any action","They have duties to block and report child exploitation content and transfers."],
+["cyber","Section 6 of RA 10175 (the umbrella provision)...","Makes RPC and special-law crimes cybercrimes if done through ICT, one degree higher","Decriminalizes RPC crimes committed through ICT whenever no person is actually harmed","Raises the penalty one degree, but only for crimes defined under special laws","Keeps the same penalty for the online and offline versions of the same crime","It applies to laws such as RA 9262 and RA 9995 when the acts are done online."],
+["cyber","According to your Cybercrime Law slides, RA 10175 offenses are punishable by imprisonment of...","6 years and 1 day up to 20 years, plus a fine of P50,000 to P500,000","1 year up to 6 years, plus a fine of P10,000 to P100,000","12 years and 1 day up to 30 years, plus a fine of P200,000 to P1,000,000","6 months up to 3 years, plus a fine of P20,000 to P200,000","As stated in the Cybercrime Law slide deck, depending on gravity."],
+["cyber","Which law covers secretly recording intimate acts and sharing them, regardless of the victim's gender or relationship with the offender?","RA 9995","RA 9262","RA 10175","RA 9775","RA 9995 (Anti-Photo and Video Voyeurism Act of 2009) protects any individual; no relationship is required."],
+["cyber","RA 9262 (Anti-Violence Against Women and Their Children Act) protects...","Women and their children, with a required relationship","Any person of any gender, with no relationship needed","Only married women and their legitimate children","Children and elderly persons of both sexes","Compare with RA 9995, which has no gender or relationship requirement."],
+["cyber","What happened to Katrina Halili's P100,000,000 civil damages claim against Hayden Kho?","Dismissed for lack of merit by the Pasig RTC on December 10, 2010","Granted in part by the Pasig RTC, with damages reduced to P10,000,000 in 2010","Settled out of court by both parties before any judgment was ever rendered","Dismissed on appeal by the Court of Appeals in 2012 for lack of jurisdiction","She sued under RA 9262. The judge noted the camera was in plain view and she consented to three earlier recordings."],
+["cyber","Why could Dr. Kho not be prosecuted under RA 9995?","It was enacted after his acts and cannot apply retroactively","It protects only men who are recorded without their consent","The videos were recorded in private and were never uploaded","It punishes only persons who sell such recordings","A special penal law has no retroactive effect."],
+["cyber","For an RA 9262 violation in the Halili-Kho setting, what must be present besides secret videotaping?","Uploading or broadcasting that causes mental anguish, ridicule or humiliation","Payment received by the offender in exchange for the secretly taken video recording","A written contract between the offender and the woman about the recording's use","Physical injury inflicted on the woman by the offender after the video was taken","The uploading is the proximate cause of the psychological harm; mere videotaping is not enough."],
+["cyber","Penalty for violating RA 9995:","3 to 7 years imprisonment and/or a fine of P100,000 to P500,000","1 to 3 years imprisonment and/or a fine of P50,000 to P150,000","6 to 12 years imprisonment and a fine of P200,000 to P1,000,000","6 months to 1 year imprisonment and a fine of P20,000","This includes anyone who copies a prohibited video, like Juan who copied it by bluetooth."],
+["cyber","Pedro secretly videotapes his sexual act with Petra, his wife. Petra did not consent. Under RA 9995, Pedro is...","Guilty, since every person involved must consent and marriage is no exception","Not guilty, since married spouses are presumed to consent to recording","Not guilty, since Pedro himself consented and took part in the act","Guilty only if he later uploads or shares the video","When the law does not distinguish, we must not distinguish."],
+["cyber","Under RA 9995, consent to record a sexual act means...","It does not include consent to copy, sell, distribute, publish or broadcast","It includes consent to copy the recording, but not to sell or broadcast it","It includes consent to share the recording with the couple's close friends only","It includes consent to publish the recording as long as no money is earned","Prohibitions (b), (c) and (d) apply even if consent to record was given."],
+["cyber","Consent to copy, sell, share, broadcast or exhibit an intimate recording under RA 9995 must be...","In writing","Verbal","Implied by conduct","Witnessed by a third person","Verbal or implied consent will not suffice (Sec. 3(d))."],
+["cyber","Pedro shows the intimate video to Juan, and Juan copies it by bluetooth with Pedro's consent. Who is guilty under RA 9995?","Both Pedro and Juan","Pedro only, since he showed the video","Juan only, since he made the copy","Neither, since Pedro agreed to share it","Copying or reproducing the recording is prohibited, so Juan is liable too."],
+["cyber","Why is public exhibition allowed for R-18 movies under RA 9995?","The actors consented to both the recording and the public exhibition","Films are classified as arts and are excluded from RA 9995","The MTRCB overrides RA 9995 for rated films","Public theaters are exempt from voyeurism laws","This protects the movie industry."],
+["cyber","Why were the main features of RA 9995 deleted from the original cybercrime bill?","Congress quickly enacted RA 9995 after the Kho-Halili scandal","The Supreme Court struck them down as unconstitutional","They were moved into the Revised Penal Code in 2012","Senators argued that voyeurism was not a cyber offense","The features were already addressed by the separate law."],
+["cyber","If a woman does to a man what Dr. Kho did to Katrina Halili, RA 9995 will...","Penalize her, since the law does not distinguish by gender","Not apply, since RA 9995 penalizes only male offenders","Apply only if the woman and the man were married","Apply through RA 9262 instead of RA 9995","RA 9995 did not distinguish the gender of potential violators."],
+["cyber","Which law in the RA 9262 / RA 9995 / RA 10175 set 'upgrades penalties and grants digital evidence warrants' in online abuse?","RA 10175","RA 9262","RA 9995","RA 9208","RA 10175 acts as the digital multiplier and procedural enabler."],
+["cyber","Under RA 9208 / RA 10364 (Anti-Trafficking in Persons), the consent of the trafficked person is...","Irrelevant","A complete defense","Required in writing","Relevant only for adults","Trafficked persons are victims and are immune from prosecution for acts directly resulting from trafficking."],
+["cyber","RA 10158 (2012) did what to vagrancy?","Decriminalized it","Increased its penalty","Reclassified it as a cybercrime","Limited it to repeat offenders","This is why Art. 202 (prostitutes) was amended in the RPC."],
+["cyber","What legally separates legitimate security testing from illegal access?","Authorization","Technical skill","Good intentions","Whether data was changed","Authorization is the legal divider. The ethical path is Coordinated Vulnerability Disclosure or a bug bounty program."],
+["cyber","A hacker who tests systems without permission, out of curiosity and without malicious intent, is called a...","Gray hat","White hat","Black hat","Script kiddie","White hat = authorized; black hat = malicious, for personal gain; gray hat = unauthorized without clear malice."],
+["cyber","Employees or contractors who already have legitimate access and misuse it are called...","Insiders","Hacktivists","Script kiddies","Money mules","Insiders are one cybercriminal type in the module."],
+["cyber","A developer builds a dual-use tool such as a penetration-testing framework. What does the module say about their responsibility?","They should add reasonable safeguards but cannot control every downstream use","They are fully liable for every misuse committed by any third party who obtains the tool","They bear no duty at all, since the tool is lawful to build and distribute","They must sell it only to buyers who hold a government-issued security license","Dual-use creators are expected to add reasonable safeguards."],
+["ip","Intellectual property (IP) refers to...","Creations of the mind: inventions, works of art, designs, and names or symbols used in commerce","Tangible property such as land and equipment that a person owns and has registered","Only inventions that have been examined and patented by the Intellectual Property Office","Confidential business information that a company keeps from its competitors","IP protects creations of the mind and gives creators recognition and financial benefit."],
+["ip","Which is NOT among the intellectual property rights listed in RA 8293?","Libel rights","Geographic indications","Industrial designs","Layout-designs of integrated circuits","The seven: copyright and related rights, trademarks/service marks, geographic indications, industrial designs, patents, layout-designs, and undisclosed information."],
+["ip","ICT professionals are mostly concerned with which IP rights?","Patents and copyrights","Geographic indications and trademarks","Industrial designs and trade names","Layout-designs and trade secrets only","As stated in the IP Code slides."],
+["ip","Among the Civil Code's modes of acquiring ownership, ownership of a program or invention is acquired through...","Intellectual creation","Occupation","Prescription","Tradition","The seven modes: occupation, law, donation, tradition, intellectual creation, prescription, succession."],
+["ip","RA 8293 is the...","Intellectual Property Code of the Philippines","Act creating the patent office","Trademark and service mark registration law","Decree on the protection of intellectual property","RA 165 created the patent office; RA 166 covers trademarks, trade names and service marks; PD 49 is the Decree on the Protection of Intellectual Property."],
+["ip","RA 166 covers...","Registration and protection of trademarks, trade names and service marks, plus unfair competition","The creation of the patent office, the issuance of patents and the protection of inventions","Registration and protection of literary and artistic works and of their authors' rights","The creation of the Intellectual Property Office and its powers, functions and officers","RA 165 = patents; RA 166 = trademarks."],
+["ip","The IP Code states that the use of intellectual property bears...","A social function","A purely private function","A commercial function only","No function beyond protecting the owner","The State promotes diffusion of knowledge for national development and the common good."],
+["ip","If two people invented the same thing independently, who gets the patent?","The one with the earliest filing or priority date","The one who first conceived the invention","The one who first used it in public","The one with the better documentation","This is the first-to-file rule (Section 29)."],
+["ip","'No patent, no protection.' What does this mean for an inventor who never registers an invention?","The State will not protect it, and a former employee could register it first","The invention is automatically protected for 20 years from its creation","He receives copyright protection over the invention's design instead","Trade secret law always prevents anyone else from patenting it","Unregistered inventions are not patent-protected."],
+["ip","How long does a patent last in the Philippines?","20 years","10 years, renewable","7 years, with no renewal","5 years, renewable twice","After 20 years the invention is open to the public for further exploitation and improvement."],
+["ip","To be patentable, an invention must be...","New, involve an inventive step, and be industrially applicable","New, commercially useful, and registered with a trade body","Original, creative, and fixed in a tangible medium","Secret, useful, and not yet publicly disclosed","Section 21 of the IP Code."],
+["ip","Are computer programs patentable under the IP Code?","No, programs for computers are excluded (Sec. 22)","Yes, if the program is original, useful and has been registered with the National Library","Yes, but only for a shortened term of 7 years from the date of filing","Yes, if the program is shown to run on hardware that is itself registered","Computer programs are protected by copyright instead."],
+["ip","Why is the swap(x,y) algorithm used as an example of something not patentable?","It lacks an inventive step and would block other programmers from using it","It is too short to qualify as a technical solution to a problem","It is a mathematical formula, which is always protected by copyright","It has already been registered by another company","The module uses it to show why programs are excluded from patents."],
+["ip","An invention is NOT new if it was patented, published, or in public use or on sale more than...","One year before the patent application","Six months before the application","Two years before the application","Five years before the application","This is the prior-art rule."],
+["ip","Which is NOT patentable under Section 22?","Discoveries, scientific theories and mathematical methods","A new machine for sorting recyclable waste","An improvement of an existing industrial process","A new composition of materials for construction","Also excluded: schemes, rules, games, programs for computers, aesthetic creations, and anything contrary to public order or morality."],
+["ip","A utility model is protected for...","7 years from filing, with no renewal","20 years from filing, with no renewal","5 years from filing, renewable twice","10 years from filing, renewable indefinitely","Utility model (Sec. 109.3) suits innovations not sufficiently inventive for a patent."],
+["ip","Which statement about utility models is correct?","There is no substantive examination, and oppositions are not allowed","Substantive examination is required, and oppositions are allowed","There is no examination, but oppositions are allowed within 30 days","Substantive examination is required, but oppositions are not allowed","Third parties may only file written observations within 30 days after publication."],
+["ip","Can an applicant file both a utility model and a patent application for the same subject?","No (Sec. 111)","Yes, but only at the same time","Yes, but only one after the other","Yes, with the consent of the IPO","Conversion between the two is allowed only once, before grant or refusal."],
+["ip","Industrial design is protected for...","5 years from filing, renewable for not more than two consecutive 5-year periods","7 years from filing, renewable once for another period of 7 years only","20 years from filing, with no renewal allowed once the term has lapsed","10 years from filing, renewable for two consecutive periods of 5 years each","The Philippines also has a six-month grace period for renewal with surcharge."],
+["ip","An industrial design is...","The ornamental or aesthetic aspect of an article","The technical function or working principle of a machine","A secret formula or process kept by a business","A word or sign identifying a business","Designs dictated essentially by technical or functional considerations are not protected."],
+["ip","The Philippines' first electric car (Eagle G-Car) is not patentable. How can its maker still protect its appearance?","By registering its industrial design","By registering it as a utility model for 20 years","By registering a geographic indication","By registering a trade secret with the IPO","No inventive step, and the technology had been in public use or on sale for over a year."],
+["ip","A trademark is...","Any visible sign that distinguishes the goods or services of an enterprise","A secret formula, process or practice known only to the enterprise that uses it","An exclusive right granted for a new technical invention, for a limited time","The ornamental or aesthetic appearance of a product or of its packaging","A trade name identifies the enterprise itself."],
+["ip","The symbol (R) beside a mark means...","The mark is registered","The owner intends to register it","The mark is a protected trade secret","The mark is covered by copyright","The TM symbol means the company claims rights and intends to register."],
+["ip","A trademark registration lasts...","10 years, renewable","5 years, renewable once","20 years, non-renewable","The lifetime of the owner","Renewable indefinitely. The Declaration of Actual Use must be filed on time."],
+["ip","Can color alone be registered as a trademark?","No, unless it is defined by a given form","Yes, any distinctive color may be registered for the owner's goods or services","Yes, but the registration lasts for only 5 years and is not renewable","Yes, but only for food and beverage products that are sold in the market","The IP Code says color alone is not registrable."],
+["ip","The core (gravamen) of trademark infringement is...","Likelihood of confusion; malice or intent to deceive is not required","Intent to deceive consumers about the origin of the goods","Profit made by the infringer from the confusing use","Exact copying of the registered logo, colors and font","Elements: valid mark, ownership by the plaintiff, and the defendant's use causing likelihood of confusion."],
+["ip","To qualify as a trade secret, information must be...","Commercially valuable because secret, known to few, and protected by reasonable steps","Registered with the IPO and renewed every 10 years like other registered marks","Publicly known, yet used by only one company in its business operations","Original, creative, and fixed in a tangible medium of expression by its author","Examples: the Coca-Cola formula, a software company's source code."],
+["ip","Whose source code is most likely a trade secret?","An employee developing and maintaining programs at Microsoft","A student's homework program submitted to a class and graded by the teacher","A hobbyist's open-source project that is posted online for anyone to download","A program that has no relation to the nature of any business at all","Programs generally are not trade secrets if they have no direct relation to the nature of the business."],
+["ip","A trade secret owner CANNOT stop others who...","Independently develop or reverse-engineer the same information","Steal the information through industrial espionage","Breach a confidentiality agreement signed with the owner","Obtain it through a breach of confidence","Unfair practices include espionage, breach of contract and breach of confidence."],
+["ip","Which measures protect trade secrets?","NDAs, non-compete agreements, IT security and controlled access to documents","Publishing the formula in trade journals and registering it as a trademark","Filing a patent application and then waiting for the patent to be granted","Registering the secret with the National Library for record and safekeeping","Companies should take preventive measures."],
+["ip","Copyright protects...","The expression of ideas, not the ideas, procedures or methods themselves","The underlying ideas in a work, provided that those ideas are original","The methods of operation that are described in a book, manual or program","Mathematical concepts and formulas, provided that they were first published by the author","Titles, slogans or logos may qualify only if they contain sufficient authorship."],
+["ip","In the Philippines, copyright protection...","Exists from creation; registering with the National Library is only for record","Begins only after registration with the Intellectual Property Office","Begins only after the work is published","Requires a copyright notice on every copy","This follows the Berne Convention."],
+["ip","The two types of rights under copyright are...","Economic rights and moral rights","Patent rights and trademark rights","Commercial rights and trade rights","Public rights and private rights","Economic rights bring financial reward; moral rights protect non-economic interests like claiming authorship."],
+["ip","Moral rights of an author last...","Lifetime plus 50 years, and are not assignable or licensable","Lifetime plus 70 years, and may be assigned freely","Lifetime only, and may be licensed","50 years from publication, and may be assigned","Section 198."],
+["ip","Bill, a programmer of ACE University, builds a scheduling system as part of his regular duties. Who owns the copyright?","ACE University (the employer), unless there is a contrary agreement","Bill (the employee), since he wrote the source code himself","The students, since they use the scheduling system","Both equally, since they co-created the work","Sec. 178.3(b): the employer owns it if the work results from regularly assigned duties."],
+["ip","A person commissions a programmer (no employer-employee relationship) to build a system. Who owns the work and the copyright?","He owns the work, but the copyright stays with the creator unless stipulated in writing","He owns both the work and the copyright, since he paid for it to be created","The creator owns both the work and the copyright, even if a written agreement says otherwise","Both belong to the commissioner unless the creator objects within a reasonable time","This is Sec. 178.4."],
+["ip","Under Sec. 178.3(a), an employee owns the copyright when...","The work is not part of his regular duties, even if he used the employer's time","The work was done on the employer's computer and during paid office hours","The employer paid the employee a bonus for the work after it was finished","The employee created the work after being hired by the employer","The employer owns it only if it results from regularly assigned duties."],
+["ip","Buying a software installer CD means you...","Own the CD but not the copyright to the source code","Own the copyright and may resell copies","Own the CD and may burn and sell copies at a lower price","Own the program's source code but not the CD","Sec. 181: the copyright is distinct from the material object."],
+["ip","Under Section 189, a lawful owner of a computer program may...","Make one back-up copy for use or archival purposes","Make as many copies as are needed within a school","Make one copy to give to a friend who cannot afford it","Make a copy only if the original disc is lost","The lawful owner is the one who acquired it from an authorized distributor."],
+["ip","Which is NOT one of the four factors of fair use?","Whether the user is a student or a teacher","The purpose and character of the use","The nature of the copyrighted work","The effect of the use on the potential market","The fourth is the amount and substantiality of the portion used."],
+["ip","Fair use (Sec. 185) may cover...","Criticism, comment, news reporting, teaching, scholarship and research","Any use that is offered free of charge to the audience, whatever the amount copied","Any use that is made for a non-profit organization such as a school or charity","Any use that is shorter than thirty seconds of audio or one page of text","Even an educational purpose does not automatically make a use fair."],
+["ip","Decompilation of a program may be fair use when done to...","Achieve interoperability with an independently created program","Learn how a competitor's program is written, then copy it","Remove the author's name from a program before reselling it","Sell the source code to other developers","Section 185 recognizes decompilation for interoperability."],
+["ip","Why was Google Books ruled fair use by US courts?","Its use was transformative and did not substitute for the books","Google obtained licenses from most of the major publishers","Google scanned only books already in the public domain","Google paid damages that satisfied the authors' claims","The module notes the Philippines also uses the four fair-use factors."],
+["ip","According to the module, uploading the first 30 seconds of a song versus the first 10 minutes of a movie:","The 30 seconds is fair use; the movie upload hurts the owner's economic rights","Both are fair use, since both are only partial copies","Neither is fair use, since both are uploaded without permission","Only the movie is fair use, since it is shorter than the full film","Large portions of a work can replace buying the original."],
+["ip","Copyright infringement for a first offense is punishable by...","1 to 3 years imprisonment plus a fine of P50,000 to P150,000","3 to 7 years imprisonment plus a fine of P100,000 to P500,000","6 months to 1 year imprisonment plus a fine of P20,000","A fine only, of P50,000 to P150,000","As stated in your copyright slides."],
+["ip","How do copyright infringement and plagiarism differ?","Infringement is a legal violation; plagiarism is an ethical matter of taking credit for another's work","Infringement is only an ethical matter; plagiarism is punished by prison under the IP Code","They are the same offense, only named differently in schools and in courts","Plagiarism needs profit to exist as an offense, while infringement does not","In infringement the culprit does not claim the work as his own but profits from the owner's rights."],
+["ip","Guimaras mangoes and Champagne are examples of...","Geographic indications","Trademarks","Trade secrets","Industrial designs","Products whose quality or reputation is linked to a place."],
+["ip","The Coca-Cola contour bottle shape is an example of...","An industrial design","A trademark for beverages","A utility model","A geographic indication","Industrial design = aesthetic or ornamental aspect of an article."],
+["ip","Layout-designs (topographies) of integrated circuits protect...","The three-dimensional arrangement of circuits in a chip","The software code that is stored inside the chip's memory","The brand name and logo printed on the surface of the chip","The manufacturing process that is used to make the chip","For example, the layout design of a microprocessor."],
+["ip","A patent owner who sells (assigns) the patent must do so...","In writing","Verbally, with a witness","Through a notarized deed only","With the IPO's consent in every case","The assignment must identify the patent's issue number, date and title."],
+["ip","An exclusive license allows...","Only one party to exploit the patented invention","Two parties to share the exploitation of the invention","Any party that pays the fee to exploit the invention","The licensee to transfer ownership of the patent","A nonexclusive license lets more than one party use it."],
+["liab","A buyer purchases a licensed copy of Microsoft Office. Which law governs the buyer-seller relationship?","The law on sales (Arts. 1458 to 1645, Civil Code)","Contract for a piece of work (Arts. 1713 to 1731)","The Labor Code provisions on employment contracts","The law on agency under the Civil Code","Mass-market software = contract of sale."],
+["liab","TABAKO Software House is hired to build a custom system for a company's specific needs. Which law governs?","Contract for a piece of work (Arts. 1713 to 1731, Civil Code)","The law on sales (Arts. 1458 to 1645, Civil Code), since a product is delivered","The Labor Code provisions on employment contracts, since the developer works for the client","The law on lease (Arts. 1642 to 1688, Civil Code), since the client uses the system","Custom software made upon special order is a contract for a piece of work."],
+["liab","Under Art. 1467, a contract for goods that the vendor makes for the general market is a...","Contract of sale","Contract for a piece of work","Contract of lease","Contract of agency","If the goods are made specially for the customer and not for the general market, it is a contract for a piece of work."],
+["liab","In Celestino Co. vs. CIR, the Supreme Court said the essence of a contract for a piece of work is the...","Sale of service","Sale of object","Sale of land","Payment of wages","In a contract of sale, the essence is the sale of an object."],
+["liab","Which is a characteristic of a contract for a piece of work?","The thing would never have existed but for the customer's order","The thing would have been sold to someone else anyway","It is governed by the Statute of Frauds","Its essence is the sale of an object","The other statements describe a contract of sale."],
+["liab","A contract for a piece of work to develop software is NOT in writing. It is...","Still enforceable, since it is not covered by the Statute of Frauds","Unenforceable, since it falls under the Statute of Frauds","Void, since software contracts must be notarized","Enforceable only if the client has paid in full","The customer must prove it in court, but writing it down is still normal practice."],
+["liab","Under Art. 1713, the software development team is the...","Contractor","Employer","Employee","Agent","The client is the employer who orders the work."],
+["liab","In a contract for a piece of work, the developer and the client have...","No employer-employee relationship, so the Labor Code does not apply","An employer-employee relationship, with Labor Code benefits","A partnership relationship governed by partnership law","An agency relationship governed by the law on agency","The contractor is not entitled to Labor Code benefits."],
+["liab","Under Art. 1715, if the delivered work has defects, the employer may...","Require the contractor to remove the defect or execute another work, or do so at the contractor's cost","Cancel the contract and keep the work without paying the contractor anything at all","Keep the work and deduct damages from the unpaid price, but never demand repairs","Seize the contractor's personal property up to the value of the defect found","If the contractor refuses, the employer can have the defect fixed or work redone at the contractor's cost."],
+["liab","Tabako University hires Developer 2 for P500,000 to fix what Developer 1 refused to fix. Who ultimately bears the cost?","Developer 1, through a court order that includes actual damages and costs of suit","Tabako University, since it chose Developer 1 in the first place and accepted the risk","Developer 2, since Developer 2 accepted the price of the repair when it was offered","The government, through the court's award of damages from public funds","Tabako pays Developer 2 first, then sues Developer 1 for breach of contract."],
+["liab","Why can't Tabako simply seize Developer 1's personal property worth P500,000?","It would violate due process and the right against unreasonable seizures","Developer 1's property is exempt from execution by law because he is a contractor","Only the police are allowed to collect debts of this kind from a private person","The amount is too small to justify seizure under the rules of the Civil Code","The only remedy is through the courts, after an attempt at amicable settlement (Art. III, Sec. 1 and 2)."],
+["liab","Under Art. 1719, acceptance of the work relieves the contractor of liability for defects, unless...","The defect is hidden and not recognizable by the employer, or the employer reserved his rights","The defect is minor and was caused by the employer's own written instructions","The contractor delivered the work later than the date agreed in the contract","The employer paid for the work in installments instead of in one full payment","These are the two exceptions."],
+["liab","Anna delivers an audio-visual presentation two weeks before the party. Missing photos are noticed only at the party. Is Anna liable?","No, since the client accepted it and could have noticed the defect earlier","Yes, since a missing photo is a hidden defect that nobody could have found","Yes, since she was already paid before the party took place and the work was used","Only if the client had reserved her rights in a text message after acceptance","The client was expected to recognize the defect."],
+["liab","A finished program has a hidden defect and the client is a non-programmer. The contractor...","May be liable, but the client must prove he could not recognize the defect","Is automatically liable, since a defect that is hidden is never the client's concern","Is never liable once the program has been accepted, whether or not the defect is hidden","Is liable only if the software contract was put in writing and signed by both parties","The burden of proof is on the client."],
+["liab","Art. 1719(2) recognizes that the parties may...","Stipulate that the employer reserves his rights against the contractor for defects","Agree that the contractor will never be liable for any defect, hidden or not","Agree that the employer may delay acceptance for as long as he wants after delivery","Agree to settle every defect claim by arbitration only, never before the courts","This is only possible if both parties agree."],
+["liab","Which are the three types of legal liability discussed for hardware and software in foreign law?","Ordinary negligence, malpractice, and strict liability","Contract, tort, and criminal liability","Civil, criminal, and administrative liability","Negligence, fraud, and breach of warranty","The Philippine perspective focuses on contractual liability."],
+["liab","Ordinary negligence in software development means...","Not using the care a reasonably prudent person would use (duty of care)","Failing to meet the higher standard of care of a profession","Releasing software with defects regardless of the care taken","Writing code that intentionally harms users or their data","Courts check whether the developer exercised their duty of care."],
+["liab","Malpractice is...","Failing to use the higher standard of care expected of a member of a profession","Failing to use the ordinary care that a reasonably prudent person would use","Liability without fault for any defect found in a product placed on the market","Breaching a contract by delivering the software later than the agreed date","Courts are unsure whether computer professionals count as professionals."],
+["liab","Strict liability means...","Liability without fault, without the plaintiff having to prove negligence","Liability that arises only if the developer acted with the intent to harm the user","Liability that is limited to the price the user paid for the license","Liability that applies only when the defendant is a licensed professional","It is rarely applied to software because defects are not clearly understood by the legal system."],
+["liab","Which is NOT a reason defective software gets released?","Governments require software to be released without any testing","Extreme pressure to bring products to market before competitors do","A lack of imposed quality standards for software products and processes","The impossibility of testing every possible use or combination of inputs","Testing can only be done up to a 'reasonable' level."],
+["liab","The three levels of loss from a software failure are...","Immediate loss of productivity, emergency service and data restoration costs, and long-term reputation","Hardware replacement costs, software licensing renewals, and the legal fees of the dispute","Loss of the stored data, loss of the staff, and loss of the software license","Immediate loss of sales, penalties imposed by law, and loss of the copyright","Customers may stop trusting a company whose systems fail."],
+["liab","'As is' license clauses typically...","Disclaim all warranties and limit damages to the license price","Guarantee fitness for any purpose the buyer has in mind","Make the developer fully liable for all consequential damages","Require the buyer to pay for every update the developer releases","The module argues this goes too far, but such limits have so far been upheld in court."],
+["liab","The module says the real question on who should be held liable is...","Who has the power to prevent harm from occurring?","Who earns the most profit from the software?","Who wrote the code that actually failed?","Who signed the license agreement for the software?","Those with that power must be encouraged to exercise it."],
+["liab","How do foreign and Philippine approaches to software liability differ, per the module?","Foreign law leans on product liability; Philippine law leans on contractual obligations","Foreign law leans on contract; Philippine law leans on strict product liability","Both use strict liability, but Philippine penalties are higher","Both rely on malpractice, but only foreign law applies negligence","Philippine liability depends on the type of contract."],
+["liab","Knight Capital's 2012 trading glitch lost about how much in 45 minutes?","$440 million","$44 million","$4 million","$4 billion","Old, untested code was accidentally activated in an automated trading system."],
+["vuln","Which code of ethics requires software engineers to consider vulnerable groups?","ACM/IEEE Software Engineering Code of Ethics and Professional Practice","The Revised Penal Code provisions on professional negligence","The Labor Code provisions on occupational safety","The Data Privacy Act implementing rules","It asks engineers to consider disabilities, economic disadvantage and other vulnerabilities."],
+["vuln","Rawls's difference principle supports special attention to vulnerable groups because...","They are easily overlooked, and justice requires attention to the least advantaged","They are the largest group of technology consumers and therefore deserve priority","They contribute most of the tax revenue that funds technology development","They own the majority of the technology companies that produce software","In the utilitarian calculus they are also easily overlooked, which leads to wrong calculations of utility."],
+["vuln","A threat analysis documents...","Threats, vulnerabilities, and mitigations","Only the attackers and their identities","Only the costs of defending a system","Only the vulnerabilities, but never the attackers","The method can also be applied to protect vulnerable groups in society."],
+["vuln","Why does the module say reducing vulnerabilities is often the best protection?","Threats will always exist, while vulnerabilities are often under our control","Threats can be eliminated entirely once strong laws and penalties are enacted","Vulnerabilities cannot be changed by social programs, only by technology","Laws never reduce the number of threats, so only technology can protect people","Attacking threats through the law decreases but never eliminates them."],
+["vuln","Which is NOT one of the five categories of vulnerable populations in the module?","People with high income","People controlled by institutions","People with limited autonomy","People with insufficient resources","The five: institutional control, limited autonomy, physical limitations or frailties, insufficient resources, and minority groups at risk of hate-motivated behavior."],
+["vuln","Prisoners, military personnel and citizens under repressive governments are vulnerable because...","They are subject to institutional control with few ways to resist its decisions","They have chosen to give up their rights through their own informed consent","They are mostly people with no access to any technology whatsoever","They are protected by special laws that apply only to institutions like theirs","They depend on the decisions of those who command or oversee them."],
+["vuln","Children, people ruled legally incompetent, and elderly people with dementia are vulnerable mainly because of...","Limited legal autonomy","Limited access to technology","Limited income","Limited education","They depend on guardians and are targeted because they are seen as less able to protect themselves."],
+["vuln","In the family locator case, a 'locatee' is...","Anyone whose cellphone is being tracked","The account owner who pays for the family plan","Anyone who has permission to see others' locations","The telecom company that provides the tracking service","A 'locator' is someone who can see others' locations."],
+["vuln","A chilling effect is...","Pressure not to do something legal because of fear of being watched or prosecuted","A software failure that is caused by overheating hardware inside the device","A legal penalty that is imposed on a person who violates another's privacy","A drop in demand for a technology following a widely reported public scandal","For example, teenagers avoiding legal activities because parents may be tracking them."],
+["vuln","Accessibility refers to...","How well people with disabilities can use a given technology","How fast a technology responds to a user's input","How cheaply a technology can be bought by consumers","How many users a technology can serve at one time","Examples: screen readers, predictive typing, subtitles, high contrast displays."],
+["vuln","The color-blind gaming case shows that...","Relying on color alone can make software unusable; contrast and texture help","Color blindness is rare enough that designers can safely ignore it in most games","Games should remove all colors altogether in order to be fully inclusive","Accessibility features should be added only in later versions after the launch","The redesign darkened the green and added textures."],
+["vuln","The 'digital divide' is the gap between...","People who have access to technology and those who do not","Older versions of software and the newer versions released to replace them","Programmers who write software and the users who must run it every day","Hardware makers who build the devices and the software makers who write for them","The poor often lack the infrastructure others take for granted."],
+["vuln","In the computer donations case, well-meaning donations to developing countries often...","Mask shipments of e-waste","Close the digital divide completely","Contain only new and working equipment","Are always recycled safely on arrival","E-waste contains precious metals but also toxins."],
+["vuln","The Luddites were...","Textile workers who destroyed mechanized looms for fear of losing their jobs","Early programmers who opposed the use of computers in business offices","Factory owners who refused to install new machines in their mills","Union leaders who negotiated for early retirement of older workers","They illustrate the backlash against new technology that automates work."],
+["vuln","Automation tends to...","Deskill some jobs while creating new jobs that require greater skill","Only create new jobs and never remove any of the existing jobs","Only remove existing jobs and never create any new kind of job","Have no effect at all on the skills that workers need on the job","Example: email reduced mailroom staff but created demand for IT workers."],
+["case","A student changes a number in a portal's URL, views a few records to confirm a vulnerability, then reports it, but was never authorized to test. What is the key legal issue?","Whether he acted 'without right' (illegal access), since good intent is not authorization","Whether the portal's records were encrypted at the time that he accessed them","Whether he copied or downloaded the records to a personal device before reporting","Whether the university had registered its domain name before the incident occurred","Authorization is the dividing line. The accepted path is coordinated vulnerability disclosure or a bug bounty."],
+["case","An employee with system access corrects inventory entries without the supervisor approval that company rules require. Why is this potentially 'without right'?","Conduct in excess of authority can be 'without right' even for authorized users","Any inventory change is a crime, since inventory records are confidential","The corrections improved the records, so the act is automatically lawful","Using the company computer for any change is automatically unlawful","Whether it becomes a crime depends on more facts (intent, harm, evidence). Do not assume guilt."],
+["case","A student member distributes a script that floods the university website for hours, calling it digital protest. Which RA 10175 offense is potentially involved?","System interference","Illegal interception","Illegal access","Cyber-squatting","A good motive does not remove the 'without right' element."],
+["case","A student posts an unverified accusation online that a university employee manipulates grades for money. Which RA 10175 content-related offense may be involved?","Online libel","Cybersex","Computer-related fraud","Computer-related forgery","The employee may claim reputational harm. Verification and public interest are relevant considerations."],
+["case","A tenant installs a hidden camera to catch a landlord entering without permission, and it records the landlord changing clothes. Best framing?","RA 9995 may apply, and keeping or showing the footage raises further issues","No law applies, since the camera is in the tenant's own rented room","Only civil law applies, since no crime was intended by the tenant","Only the landlord's act of entering without permission is punishable","The purpose (documenting entry) does not by itself remove the prohibition. The angle and use of the footage matter."],
+["case","Two adults privately recorded an intimate video. One wants to post clips to defend their reputation, saying consent was given when recording. Under RA 9995...","Consent to record is not consent to publish; posting without written consent is prohibited","Posting is allowed, since the consent given to record also covered later use of clips","Posting is allowed if the person who posts the clips earns no money from them","Only the person who held the camera can be held liable for posting the clips","Prohibitions on copying, selling, distributing and publishing apply even if consent to record was given."],
+["case","After a breakup, someone threatens to publish consensually taken intimate photos unless the ex agrees to meet. Which statement is best?","Consent to take the photos does not cover publishing them, so RA 9995 may be implicated","No law applies at all, since the photos were taken with the full consent of both","Only civil law applies, since nothing has actually been published or sent yet","It is only an ethical matter until the photos are actually posted online","The threat points to coercion and potential unauthorized distribution. More facts are needed for the exact violation."],
+["case","A student forwards a classmate's leaked intimate photos to another person 'to ask if they are genuine'. Is good intent a defense?","No, forwarding copies or distributes the material and increases harm","Yes, since the intent was only to verify, not to embarrass","Yes, since the forwarding was done privately and for free","Yes, since the photos were already circulating in the group","Report through official channels instead of circulating the material."],
+["case","A blogger publishes intimate images of a public official, claiming public accountability. What should be noted?","Public-figure status does not allow publishing private intimate images without consent","Public officials have no privacy rights over their private lives","Bloggers are exempt from voyeurism laws as members of the press","The images are protected speech if the official is later shown to be corrupt","RA 9995 has no public-figure exception."],
+["case","A photographer wants to put a client's private photo, anonymized, in a portfolio. The client only agreed to the session. Which rule applies?","Consent to the shoot is not consent to public display; written consent is needed","Anonymizing the photo makes the public display automatically lawful for the photographer","Photographers own every image they take, so no consent is ever needed for display","A verbal agreement from the client is enough to display the photo in a portfolio","Consent to record does not include consent to publish."],
+["case","A school administrator asks a student to email a copy of an intimate video of another student for investigation. Proper approach?","Do not copy or transfer it; use official safeguarding and reporting procedures","Collect copies from several students to confirm the video is real","Post it internally so the source of the leak can be traced","Keep it on a personal device to protect it from deletion","Handling or circulating such material can cause further harm and legal exposure."],
+["case","A buyer of a secondhand computer finds files that appear to be child sexual abuse material. What should the buyer do?","Do not open, copy or share them; report through the appropriate authorities","Open a few files to confirm what they are first, then report them to the police","Ask an IT friend to inspect the files and make a back-up for the authorities","Delete the files quietly and format the computer before reselling it to others","Under RA 11930, possessing, accessing or sharing such materials is prohibited."],
+["case","A platform delays removing an account distributing child sexual abuse material because the account has many followers. This is...","A failure of the platform's legal duty to block and report under RA 11930","Acceptable business judgment while an internal review is done","Protected by the platform's own freedom of speech","Lawful as long as the account does not earn advertising revenue","Platforms must block and report such content."],
+["case","A parent forwards a message with attached child abuse material to a school group chat to warn others. What is the problem?","Forwarding spreads the material to more people; warn without sharing it, and report","Nothing is wrong, since the warning serves a legitimate public purpose for parents","It is only a privacy issue involving the original sender of the message","It is acceptable as long as the parent does not add any caption to the message","Preserve message details and report to the authorities."],
+["case","A computer shop owner finds suspected child sexual abuse files on an abandoned workstation and considers copying them first to preserve evidence. Best action?","Do not copy; report to the authorities and leave evidence handling to them","Copy them to a separate drive and then delete the originals","Keep a copy for a week in case the customer returns to deny it","Sell the workstation after wiping the files from its drive","Making copies may itself involve prohibited possession or reproduction."],
+["case","A content moderator downloads suspected child abuse material to a personal device to use as training examples. Why is this wrong?","Downloading or storing such material is prohibited; approved training resources must be used","Moderators may keep copies on a personal device only if used for staff training","It is only a company policy matter and is not covered by any law","It is allowed, since the moderator is already authorized to review user reports","Authorization to review does not authorize making personal copies."],
+["case","An adult offers free coding lessons to a teen, then asks for personal photos, secrecy, and a move to a private platform. This pattern is...","Grooming, with red flags such as secrecy, photo requests and less-monitored platforms","Normal mentoring, since the adult is teaching a useful skill to the teen for free","Cybersex, since the adult has asked the teen to send personal photographs","Cyber-squatting, since the adult moved the conversation to a different platform","RA 11930 covers grooming, luring and pandering."],
+["case","A minor sends explicit images after being threatened. The recipient says it was consensual. How should this be analyzed?","The minor's compliance under threat is not valid consent, and the material may be CSAM","The act is lawful, since the minor sent the images voluntarily and by choice","The act is lawful, since no money was exchanged between the two persons","It is only a school disciplinary matter and not a criminal one at all","Children cannot legally consent to sexual exploitation."],
+["case","A Philippine resident thinks authorities cannot act because the platform and some users are overseas. Is that right?","No, report to Philippine authorities and the platform; the law can reach such acts","Yes, only the authorities of the foreign country can act in such cases","Yes, unless all the users involved are Filipino citizens","Yes, until the platform opens an office in the Philippines","The module says the law can apply even if the offender is abroad in certain situations."],
+["case","A user creates AI-generated sexualized images of an identifiable minor and says no real act happened. How does RA 11930 treat this?","It can still be covered, since digital or virtual children, including AI images, are within CSAEM","It is lawful, since the images are purely synthetic and no real child performed any act","It is lawful if the images are shared only inside a small private group","It is only an intellectual property issue and not a child protection issue","Synthetic images may also exploit a real child's identity."],
+["case","A group installs one commercial software license on several computers for a nonprofit literacy program. Is the nonprofit purpose a full defense?","No, using software beyond its license can be infringement even for a good cause","Yes, any nonprofit use of software is always allowed under the fair use rules","Yes, since the software is used for teaching and the program earns no profit","Yes, as long as they credit the software vendor in all of the program materials","Fair use is judged by its four factors, not just purpose."],
+["case","A business uses photos found online in its ads and credits the photographers. Is attribution enough?","No, crediting is not a license; commercial use needs permission","Yes, credit given to the creators satisfies the law","Yes, because the photos were publicly viewable on a website","Yes, as long as the advertisements are small and used only locally","Publicly viewable does not mean free to use commercially."],
+["case","A team reuses code from a public repository without checking its license. What is the issue?","Public availability does not mean free reuse; the license decides what you may do","Public code is always free to use, change and redistribute","Only unmodified copies of the code require permission from the authors","Changing the interface removes the need to check the license","Copyright stays with the original developers even when the code is open source."],
+["case","A professor uploads a complete commercial textbook to the LMS for enrolled students, free of charge. Likely analysis?","Probably not fair use, since the whole work can substitute for buying the book","Fair use, since access to the LMS course is restricted to the enrolled students","Fair use, since no fee is charged to the students for downloading the file","Always legal for professors, since the purpose of the upload is educational","Fair use weighs purpose, nature, amount used, and effect on the market."],
+["case","A developer studies public documentation and observes behavior to make an app compatible with a commercial platform. Which provision supports the developer?","Sec. 185: analysis for interoperability may be fair use, but copying protected code is not","Sec. 178: works that are made for others belong to the person who ordered them","Sec. 189: a lawful owner may make one backup copy of a computer program","None, since any study of another company's software is automatically infringement","The facts must show no copying of protected code."],
+["case","A startup's AI-generated logo closely resembles another company's branding. What is the key concern?","Trademark infringement, through likelihood of confusion, whatever the intent or AI use","Copyright duration, since an AI-generated logo has no human author to protect","Patent first-to-file, since the logo was created later than the other company's","Trade secret leakage, since the startup must have seen the other company's drafts","Malice or intent to deceive is not required."],
+["case","An employee builds a tool on a company computer during work hours, including a library he wrote before joining. The contract is silent. How should ownership be analyzed?","Under Sec. 178.3, check if it was part of his regular duties; the earlier library is separate","The employee automatically owns everything, since he personally wrote all of the code","The company automatically owns everything, since he used its computer and paid time","Ownership cannot be decided by anyone without first getting a court order","Using company time and facilities does not by itself decide it; regular duties do."],
+["case","A student's monetized documentary uses short ad clips to criticize misleading tech advertising. Which factors favor fair use?","Criticism purpose, transformative use and limited clips; monetization alone does not decide it","None of them, since any monetized video is automatically an infringing video","None of them, since advertisements are always fully protected by copyright","All of them, since an educational purpose alone always makes a use fair","Check also the amount used and the effect on the market."],
+["case","A student shares paid course videos and materials in a group chat for free. Is this infringement without profit?","Yes, unauthorized distribution can infringe even without profit","No, only commercial sale of the videos can infringe","No, since the students who receive them cannot afford the course","No, if the files are shared only once","Intent to help or lack of profit does not excuse infringement."],
+["case","Students independently design a device similar to a patented one and plan to sell it, saying they never saw the patent. Is independent invention a safe defense?","No, a patent gives its owner the exclusive right to make, use and sell the invention","Yes, independent invention is always a complete defense to patent infringement","Yes, as long as they register their own trademark for the new device","Yes, as long as they sell the device only within the same province","The patent system rewards the first to file."]];
+
+
+(function () {
+  var KEY = "itsopri-reviewer-v1";
+  var TOPICS = {
+    cyber: "Cybercrime and related laws",
+    ip: "Intellectual property law",
+    liab: "Liability of programmers",
+    vuln: "Vulnerable groups",
+    "case": "Case scenarios"
+  };
+  var TOPIC_ORDER = ["cyber", "ip", "liab", "vuln", "case"];
+  var LENGTHS = [10, 20, 30, 0];
+  var app = document.getElementById("app");
+
+  // ---- storage (guarded: may be unavailable) ----
+  var mem = { stats: {}, history: [] };
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var d = JSON.parse(raw); if (d && d.stats && d.history) return d; }
+    } catch (e) {}
+    return mem;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { mem = store; }
+  }
+  var store = load();
+
+  // ---- state ----
+  var cfg = { topic: "all", len: 20 };
+  var view = "home";
+  var S = null; // session
+  var resetArmed = false;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function idsFor(topic) {
+    var out = [];
+    QUESTIONS.forEach(function (q, i) {
+      if (topic === "all" || topic === "weak" || q[0] === topic) out.push(i);
+    });
+    if (topic === "weak") out = out.filter(function (i) { var s = store.stats[i]; return s && s.last === 0; });
+    return out;
+  }
+  function counts(topic) {
+    var ids = idsFor(topic), m = 0;
+    ids.forEach(function (i) { var s = store.stats[i]; if (s && s.last === 1) m++; });
+    return { total: ids.length, mastered: m };
+  }
+  function pct(a, b) { return b ? Math.round((a / b) * 100) : 0; }
+  function topicLabel(t) { return t === "all" ? "All topics" : t === "weak" ? "Weak spots" : TOPICS[t]; }
+
+  function buildItem(id) {
+    var r = QUESTIONS[id];
+    var opts = shuffle([{ t: r[2], c: true }, { t: r[3] }, { t: r[4] }, { t: r[5] }]);
+    return { id: id, q: r[1], tag: r[0], opts: opts, exp: r[6], picked: -1 };
+  }
+  function startSession(ids, label) {
+    S = { items: shuffle(ids).map(buildItem), i: 0, score: 0, label: label, done: false };
+    view = "quiz";
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  // ---- views ----
+  function homeView() {
+    var all = counts("all"), weak = idsFor("weak").length;
+    var attempts = store.history.length;
+    var best = store.history.reduce(function (m, h) { return Math.max(m, pct(h.score, h.total)); }, 0);
+    var h = '<header><p class="eyebrow">ITSopri and SocPra final exam</p><h1>Law and Liability Reviewer</h1>' +
+      '<p class="lede">Practice the four exam areas as many times as you like. Questions and answer order reshuffle every round, and your progress is saved on this device.</p></header>';
+
+    h += '<section class="panel" aria-label="Your progress"><div class="stats">' +
+      '<div class="stat"><b>' + pct(all.mastered, all.total) + '%</b><span>mastered (' + all.mastered + ' of ' + all.total + ')</span></div>' +
+      '<div class="stat"><b>' + attempts + '</b><span>rounds played</span></div>' +
+      '<div class="stat"><b>' + (attempts ? best + '%' : '-') + '</b><span>best round</span></div></div>' +
+      '<div class="bar" role="progressbar" aria-valuenow="' + pct(all.mastered, all.total) + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct(all.mastered, all.total) + '%"></i></div>' +
+      '<p class="note">A question counts as mastered when your latest answer to it was correct.</p></section>';
+
+    h += '<section class="panel"><h2>1. Pick a topic</h2><div class="topics">';
+    h += topicBtn("all", "All topics", counts("all"));
+    TOPIC_ORDER.forEach(function (t) { h += topicBtn(t, TOPICS[t], counts(t)); });
+    h += '<button class="topic" data-act="topic" data-v="weak" aria-pressed="' + (cfg.topic === "weak") + '"' + (weak ? "" : " disabled") + '><span>Weak spots only</span><small>' + weak + ' to fix</small></button>';
+    h += '</div></section>';
+
+    h += '<section class="panel"><h2>2. How many questions?</h2><div class="lens">';
+    LENGTHS.forEach(function (n) {
+      h += '<button class="len" data-act="len" data-v="' + n + '" aria-pressed="' + (cfg.len === n) + '">' + (n ? n : "All") + '</button>';
+    });
+    h += '</div><button class="btn primary" data-act="start">Start round</button></section>';
+
+    if (store.history.length) {
+      h += '<section class="panel"><div class="row"><h2>Recent rounds</h2></div><ul class="hist">';
+      store.history.slice(0, 6).forEach(function (r) {
+        var d = new Date(r.t);
+        h += '<li><span>' + esc(r.label) + ' <span class="note">' + d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + '</span></span><span>' + r.score + '/' + r.total + ' (' + pct(r.score, r.total) + '%)</span></li>';
+      });
+      h += '</ul><button class="btn ghost" data-act="reset">' + (resetArmed ? "Tap again to erase all progress" : "Reset progress") + '</button></section>';
+    }
+    return h;
+  }
+  function topicBtn(v, label, c) {
+    return '<button class="topic" data-act="topic" data-v="' + v + '" aria-pressed="' + (cfg.topic === v) + '"><span>' + esc(label) + '</span><small>' + c.mastered + '/' + c.total + ' mastered</small></button>';
+  }
+
+  function quizView() {
+    var it = S.items[S.i], n = S.items.length, answered = it.picked >= 0;
+    var h = '<div class="row"><button class="btn ghost" data-act="home" style="min-height:40px;padding:6px 12px">Exit</button>' +
+      '<span class="qhead"><span>Score ' + S.score + ' / ' + (S.i + (answered ? 1 : 0)) + '</span></span></div>';
+    h += '<div class="bar" role="progressbar" aria-valuenow="' + S.i + '" aria-valuemin="0" aria-valuemax="' + n + '"><i style="width:' + pct(S.i + (answered ? 1 : 0), n) + '%"></i></div>';
+    h += '<section class="panel"><div class="qhead"><span>Question ' + (S.i + 1) + ' of ' + n + '</span><span class="tag">' + esc(TOPICS[it.tag]) + '</span></div>';
+    h += '<p class="question">' + esc(it.q) + '</p><div class="opts">';
+    it.opts.forEach(function (o, k) {
+      var cls = "opt", flag = "";
+      if (answered) {
+        if (o.c) { cls += " good"; flag = "Correct answer"; }
+        else if (k === it.picked) { cls += " bad"; flag = "Your answer"; }
+      }
+      h += '<button class="' + cls + '" data-act="pick" data-v="' + k + '"' + (answered ? " disabled" : "") + '><span class="k">' + "ABCD"[k] + '</span><span class="t">' + esc(o.t) + '</span>' + (flag ? '<span class="flag">' + flag + '</span>' : "") + '</button>';
+    });
+    h += '</div>';
+    if (answered) {
+      var ok = it.opts[it.picked].c;
+      h += '<div class="explain ' + (ok ? "good" : "bad") + '" role="status"><b>' + (ok ? "Correct" : "Not quite") + '</b>' + esc(it.exp) + '</div>';
+      h += '<button class="btn primary" data-act="next">' + (S.i + 1 < n ? "Next question" : "See results") + '</button>';
+    } else {
+      h += '<p class="note">Tap an answer, or press A, B, C or D.</p>';
+    }
+    h += '</section>';
+    return h;
+  }
+
+  function resultView() {
+    var n = S.items.length, p = pct(S.score, n);
+    var missed = S.items.filter(function (it) { return !it.opts[it.picked].c; });
+    var msg = p >= 90 ? "Exam ready. Keep a light review going." : p >= 75 ? "Solid. Fix the misses below and run it again." : p >= 50 ? "Getting there. Retry the missed ones until they stick." : "Early days. Repetition works, so retry the missed questions now.";
+    var h = '<section class="panel"><p class="eyebrow">' + esc(S.label) + '</p><div class="score">' + S.score + ' / ' + n + '</div>' +
+      '<p style="margin:0"><b>' + p + '%</b>. ' + msg + '</p><div class="btns">';
+    if (missed.length) h += '<button class="btn primary" data-act="retry-missed">Retry ' + missed.length + ' missed</button>';
+    h += '<button class="btn' + (missed.length ? "" : " primary") + '" data-act="again">New round, same settings</button>' +
+      '<button class="btn ghost" data-act="home">Back to topics</button></div></section>';
+    if (missed.length) {
+      h += '<section class="panel"><h2>Review what you missed</h2>';
+      missed.forEach(function (it) {
+        var right = it.opts.filter(function (o) { return o.c; })[0].t;
+        h += '<div class="miss"><p><b>' + esc(it.q) + '</b></p><p>You chose: ' + esc(it.opts[it.picked].t) + '</p><p class="a">Correct: ' + esc(right) + '</p><p class="e">' + esc(it.exp) + '</p></div>';
+      });
+      h += '</section>';
+    }
+    return h;
+  }
+
+  function render() {
+    app.innerHTML = view === "home" ? homeView() : view === "quiz" ? quizView() : resultView();
+  }
+
+  // ---- actions ----
+  function finish() {
+    var n = S.items.length;
+    store.history.unshift({ t: Date.now(), label: S.label, score: S.score, total: n });
+    store.history = store.history.slice(0, 30);
+    save();
+    view = "result";
+  }
+  function startFromCfg() {
+    var ids = idsFor(cfg.topic);
+    if (!ids.length) return;
+    ids = shuffle(ids);
+    if (cfg.len && cfg.len < ids.length) ids = ids.slice(0, cfg.len);
+    startSession(ids, topicLabel(cfg.topic));
+  }
+  function pick(k) {
+    var it = S.items[S.i];
+    if (it.picked >= 0) return;
+    it.picked = k;
+    var ok = !!it.opts[k].c;
+    if (ok) S.score++;
+    var s = store.stats[it.id] || { seen: 0, right: 0, last: 0 };
+    s.seen++; if (ok) s.right++; s.last = ok ? 1 : 0;
+    store.stats[it.id] = s;
+    save();
+    render();
+  }
+
+  app.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]");
+    if (!b || b.disabled) return;
+    var act = b.getAttribute("data-act"), v = b.getAttribute("data-v");
+    if (act === "topic") { cfg.topic = v; render(); }
+    else if (act === "len") { cfg.len = parseInt(v, 10); render(); }
+    else if (act === "start") startFromCfg();
+    else if (act === "pick") pick(parseInt(v, 10));
+    else if (act === "next") {
+      if (S.i + 1 < S.items.length) { S.i++; render(); window.scrollTo(0, 0); }
+      else { finish(); render(); window.scrollTo(0, 0); }
+    }
+    else if (act === "home") { view = "home"; render(); window.scrollTo(0, 0); }
+    else if (act === "again") startFromCfg();
+    else if (act === "retry-missed") {
+      var ids = S.items.filter(function (it) { return !it.opts[it.picked].c; }).map(function (it) { return it.id; });
+      startSession(ids, "Retry: " + S.label);
+    }
+    else if (act === "reset") {
+      if (!resetArmed) { resetArmed = true; render(); setTimeout(function () { resetArmed = false; if (view === "home") render(); }, 4000); }
+      else { store = { stats: {}, history: [] }; resetArmed = false; save(); render(); }
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (view !== "quiz" || !S || e.metaKey || e.ctrlKey || e.altKey) return;
+    var it = S.items[S.i], key = e.key.toLowerCase(), idx = "abcd".indexOf(key);
+    if (idx < 0 && "1234".indexOf(key) >= 0) idx = "1234".indexOf(key);
+    if (idx >= 0 && it.picked < 0) { e.preventDefault(); pick(idx); }
+    else if ((key === "enter" || key === "n") && it.picked >= 0 && document.activeElement.tagName !== "BUTTON") {
+      e.preventDefault();
+      var nb = app.querySelector('[data-act="next"]'); if (nb) nb.click();
+    }
+  });
+
+  render();
+})();
+</script>
